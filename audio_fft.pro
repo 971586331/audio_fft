@@ -4,8 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core gui
-
+QT       += core gui charts multimedia
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 TARGET = audio_fft
@@ -25,10 +24,15 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
         main.cpp \
-        mainwindow.cpp
+        mainwindow.cpp \
+    xyseriesiodevice.cpp
 
 HEADERS += \
-        mainwindow.h
+        mainwindow.h \
+    fftw-3.3.5-dll32/fftw3.h \
+    xyseriesiodevice.h
 
 FORMS += \
         mainwindow.ui
+
+LIBS += $$PWD\fftw-3.3.5-dll32\libfftw3-3.lib

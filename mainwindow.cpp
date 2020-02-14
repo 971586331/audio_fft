@@ -20,11 +20,17 @@
 #include <QAudioOutput>
 #include <QSoundEffect>
 #include <QStandardPaths>
+#include <QDateTimeAxis>
+#include <QDateTime>
 
-#define N 5
+#define SAMPLE_RATE  (48000)
+#define BIT_RATE     (16)
+#define BYTE_RATE    (2)
 
 void fft_test(void)
 {
+    int N = 5;
+
     /**********************一维复数DFT变换，复数到复数**********************/
     fftw_complex *in1_c, *out1_c;//声明复数类型的输入数据in1_c和FFT变换的结果out1_c
     fftw_plan p;//声明变换策略
@@ -60,6 +66,7 @@ void fft_test(void)
     fftw_free(in1_c); fftw_free(out1_c);//释放内存
 }
 
+//将wav文件转为pcm文件
 int wav2pcm(char *in_file, char *out_file)
 {
     size_t result;
@@ -87,7 +94,7 @@ int wav2pcm(char *in_file, char *out_file)
     }
 
     result =fread(buf,1,(filesize-44),fp1);//每次读一个字节到buf，同时求读的次数
-    if(result!=filesize-44)//判断读的次数和文件大小是否一致
+    if(result != (filesize-44))//判断读的次数和文件大小是否一致
     {
         qDebug() << "reing error!!" << endl;
         return -1;
@@ -104,8 +111,6 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-
-    //wav2pcm("C:/Users/sy/Desktop/ss.wav", "C:/Users/sy/Desktop/ss.pcm");
 
     //创建一个顶层的widget
     QWidget *widget = new QWidget();
@@ -143,6 +148,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(play_pcm_button, SIGNAL(clicked()), this, SLOT(slots_play_pcm_button_clicked()));
     //开始FFT
     QPushButton * start_fft_button = new QPushButton("开始FFT");
+    connect(start_fft_button, SIGNAL(clicked()), this, SLOT(slots_start_fft_button_clicked()));
 
     //按钮的水平布局
     QHBoxLayout *hLayout_2 = new QHBoxLayout();
@@ -191,14 +197,17 @@ MainWindow::MainWindow(QWidget *parent) :
 
     tabwidget->addTab(mic_chartView, "本机麦克风");
 
-    //音频文件
-    QChart *pcm_chart = new QChart;
+    //时域波形
+    pcm_chart = new QChart;
     QChartView *pcm_chartView = new QChartView(pcm_chart);
-    QLineSeries *pcm_series = new QLineSeries;
+    pcm_chartView->setRubberBand(QChartView::HorizontalRubberBand);
+    pcm_series = new QLineSeries;
     pcm_chart->addSeries(pcm_series);
-    QValueAxis *pcm_axisX = new QValueAxis;
-    pcm_axisX->setRange(0, 2000);
-    pcm_axisX->setLabelFormat("%g");
+    pcm_axisX = new QDateTimeAxis;
+    pcm_min.setMSecsSinceEpoch(0);
+    pcm_max.setMSecsSinceEpoch(10000);
+    pcm_axisX->setRange(pcm_min, pcm_max);
+    pcm_axisX->setFormat("ss.zzz");
     pcm_axisX->setTitleText("time");
     QValueAxis *pcm_axisY = new QValueAxis;
     pcm_axisY->setRange(-1, 1);
@@ -213,14 +222,15 @@ MainWindow::MainWindow(QWidget *parent) :
     //频域上的幅度
     QChart *amplitude_chart = new QChart;
     QChartView *amplitude_chartView = new QChartView(amplitude_chart);
-    QLineSeries *amplitude_series = new QLineSeries;
+    amplitude_chartView->setRubberBand(QChartView::HorizontalRubberBand);
+    amplitude_series = new QLineSeries;
     amplitude_chart->addSeries(amplitude_series);
     QValueAxis *amplitude_axisX = new QValueAxis;
-    amplitude_axisX->setRange(0, 2000);
+    amplitude_axisX->setRange(0, 65536);
     amplitude_axisX->setLabelFormat("%g");
     amplitude_axisX->setTitleText("time");
     QValueAxis *amplitude_axisY = new QValueAxis;
-    amplitude_axisY->setRange(-1, 1);
+    amplitude_axisY->setRange(0, 1000);
     amplitude_axisY->setTitleText("Audio level");
     amplitude_chart->setAxisX(amplitude_axisX, amplitude_series);
     amplitude_chart->setAxisY(amplitude_axisY, amplitude_series);
@@ -259,10 +269,11 @@ MainWindow::MainWindow(QWidget *parent) :
     audioRecorder = new QAudioRecorder;
     QAudioEncoderSettings audioSettings;
     audioSettings.setCodec("audio/pcm");
-    audioSettings.setSampleRate(48000);
+    audioSettings.setSampleRate(SAMPLE_RATE);
     audioSettings.setChannelCount(1);
-    audioSettings.setQuality(QMultimedia::NormalQuality);
-    audioSettings.setEncodingMode(QMultimedia::ConstantQualityEncoding);
+    audioSettings.setBitRate(BIT_RATE);
+    //audioSettings.setQuality(QMultimedia::LowQuality);
+    //audioSettings.setEncodingMode(QMultimedia::ConstantQualityEncoding);
     audioRecorder->setEncodingSettings(audioSettings);
 
     //状态栏
@@ -355,4 +366,157 @@ void MainWindow::slots_play_pcm_button_clicked()
     effect->setSource(QUrl::fromLocalFile(out_str));
     effect->setVolume(1.0f);
     effect->play();
+}
+
+//显示时域波形
+int MainWindow::show_time_waveform(char * file_path)
+{
+    size_t result;
+    char  *buf;
+    FILE *fp1=fopen(file_path, "rb");   //打开读权限
+    fseek(fp1,0,SEEK_END);//文件指针从0挪到尾部
+    long filesize;
+    filesize=ftell(fp1);//ftell求文件指针相对于0的便宜字节数，就求出了文件字节数
+
+    if(fp1==NULL)//判断两个文件是否打开
+    {
+        QMessageBox::critical(NULL, "错误", "\"" + QString(QLatin1String(file_path)) + "\"" + "文件打开失败！", QMessageBox::Yes, QMessageBox::Yes);
+        return -1;
+    }
+
+    //计算时间，设置坐标轴
+    int fp_ms = (filesize / sizeof(unsigned short))*1000 / SAMPLE_RATE;
+    pcm_max.setMSecsSinceEpoch(fp_ms);
+    pcm_axisX->setRange(pcm_min, pcm_max);
+
+    if( fp_ms < 60*1000 )
+        pcm_axisX->setFormat("ss.zzz");
+    if( (fp_ms >= 60*1000) && (fp_ms < 60*60*1000) )
+        pcm_axisX->setFormat("mm.ss.zzz");
+    if( fp_ms > 60*60*1000 )
+        pcm_axisX->setFormat("hh.mm.ss.zzz");
+
+    rewind(fp1);//还原指针位置
+    buf=(char *)malloc(filesize);//开辟空间给缓存数组
+    if(buf==NULL)
+    {
+        QMessageBox::critical(NULL, "错误", "\"" + QString(QLatin1String(file_path)) + "\"" + "内存分配失败！", QMessageBox::Yes, QMessageBox::Yes);
+        return -1;
+    }
+
+    result =fread(buf, 1, filesize, fp1);//每次读一个字节到buf，同时求读的次数
+    if(result != filesize)//判断读的次数和文件大小是否一致
+    {
+        QMessageBox::critical(NULL, "错误", "\"" + QString(QLatin1String(file_path)) + "\"" + "文件读取失败！", QMessageBox::Yes, QMessageBox::Yes);
+        return -1;
+    }
+
+    QVector<QPointF> points;
+    points = pcm_series->pointsVector();
+
+    for( int i=0; i<filesize/2; i++ )
+    {
+        //short x = buf[i*2] + buf[i*2+1]*255;
+        short x = *((short *)(buf+(i*2)));
+        points.append(QPointF(((double)1000/SAMPLE_RATE)*i, ((double)x)/32768));
+    }
+
+    pcm_series->replace(points);
+
+    fclose(fp1);//关闭文件指针
+    free (buf);//释放buf
+}
+
+//显示频域的幅度
+int MainWindow::show_amplitude_waveform(char * file_path)
+{
+    size_t result;
+    char  *buf;
+    short *in_buf;
+    FILE *fp1=fopen(file_path, "rb");   //打开读权限
+    fseek(fp1,0,SEEK_END);//文件指针从0挪到尾部
+    long filesize;
+    filesize=ftell(fp1);//ftell求文件指针相对于0的便宜字节数，就求出了文件字节数
+    int N = filesize/2;
+
+    if(fp1==NULL)//判断两个文件是否打开
+    {
+        QMessageBox::critical(NULL, "错误", "\"" + QString(QLatin1String(file_path)) + "\"" + "文件打开失败！", QMessageBox::Yes, QMessageBox::Yes);
+        return -1;
+    }
+
+    rewind(fp1);//还原指针位置
+    buf=(char *)malloc(filesize);//开辟空间给缓存数组
+    if(buf==NULL)
+    {
+        QMessageBox::critical(NULL, "错误", "\"" + QString(QLatin1String(file_path)) + "\"" + "内存分配失败！", QMessageBox::Yes, QMessageBox::Yes);
+        return -1;
+    }
+
+    result =fread(buf, 1, filesize, fp1);//每次读一个字节到buf，同时求读的次数
+    if(result != filesize)//判断读的次数和文件大小是否一致
+    {
+        QMessageBox::critical(NULL, "错误", "\"" + QString(QLatin1String(file_path)) + "\"" + "文件读取失败！", QMessageBox::Yes, QMessageBox::Yes);
+        return -1;
+    }
+
+    in_buf = (short *)buf;
+
+    double * in = (double*)fftw_malloc(sizeof(double) * N);
+    for(int i=0; i<N; i++)
+    {
+        in[i] = in_buf[i];  //将pcm文件中的数据复制到fft的输入
+    }
+
+    fftw_complex * out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * N);
+
+    fftw_plan p = FFTW3_H::fftw_plan_dft_r2c_1d(N, in, out, FFTW_ESTIMATE);
+    fftw_execute(p);
+
+    double dx3 = (double)48000 / N;
+
+    QVector<QPointF> points;
+    points = amplitude_series->pointsVector();
+
+    for( int i=0; i<N; i++ )
+    {
+        double val = sqrt(out[i][0] * out[i][0] + out[i][1] * out[i][1]);
+        points.append(QPointF(dx3 * i, val / (N / 2)));
+
+        //qDebug("dx3 = %f, val = %f", dx3 * i, val);
+    }
+
+    amplitude_series->replace(points);
+
+    fclose(fp1);    //关闭文件指针
+    fftw_destroy_plan(p);
+    free(buf);      //释放buf
+    fftw_free(in);
+    fftw_free(out);
+}
+
+//开始FFT
+void MainWindow::slots_start_fft_button_clicked()
+{
+    QString  in_str;
+    in_str = path_lineedit->text() + ".pcm";
+
+    QFileInfo fileInfo(in_str);
+    if(!fileInfo.isFile())
+    {
+        QMessageBox::critical(NULL, "错误", "\"" + in_str + "\"" + "文件不存在！", QMessageBox::Yes, QMessageBox::Yes);
+        return;
+    }
+
+    char * in_ch;
+    QByteArray in_ba = in_str.toLatin1();
+    in_ch = in_ba.data();
+
+    //时域波形
+    show_time_waveform(in_ch);
+
+    //频域的幅度
+    show_amplitude_waveform(in_ch);
+
+    //频域的相位
 }

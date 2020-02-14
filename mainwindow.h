@@ -9,6 +9,8 @@
 #include <QAudioRecorder>
 #include <QAudioOutput>
 #include <QSoundEffect>
+#include <QDateTimeAxis>
+#include <QDateTime>
 
 QT_CHARTS_BEGIN_NAMESPACE
 class QLineSeries;
@@ -35,12 +37,16 @@ public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
 
+    int show_time_waveform(char * file_path);
+    int show_amplitude_waveform(char * file_path);
+
 private slots:
     void slots_save_button_clicked(void);
     void slots_start_recorder_button_clicked(void);
     void slots_stop_recorder_button_clicked(void);
     void slots_transform_button_clicked(void);
     void slots_play_pcm_button_clicked(void);
+    void slots_start_fft_button_clicked(void);
 
 private:
     Ui::MainWindow *ui;
@@ -55,6 +61,14 @@ private:
     QAudioRecorder * audioRecorder;
     QAudioOutput * audio;
     QSoundEffect * effect;
+
+    QDateTimeAxis *pcm_axisX;
+    QLineSeries *pcm_series;
+    QChart *pcm_chart;
+    QDateTime pcm_min;
+    QDateTime pcm_max;
+
+    QLineSeries *amplitude_series;
 };
 
 #endif // MAINWINDOW_H

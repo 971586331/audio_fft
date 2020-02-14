@@ -52,6 +52,9 @@ qint64 XYSeriesIODevice::writeData(const char * data, qint64 maxSize)
     QVector<QPointF> points;
     int resolution = 4;
 
+    //QTime current_time =QTime::currentTime();
+    //int msec = current_time.msec();
+    //qDebug() << "run writeData :" << msec;
     //qDebug() << "maxSize :" << maxSize;
     //qDebug() << "oldPoints.count() :" << oldPoints.count();
 

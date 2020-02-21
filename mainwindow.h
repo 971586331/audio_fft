@@ -69,6 +69,7 @@ private:
     QDateTime pcm_max;
 
     QLineSeries *amplitude_series;
+    QLineSeries *phase_series;
 };
 
 #endif // MAINWINDOW_H

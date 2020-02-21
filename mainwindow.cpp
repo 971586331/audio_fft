@@ -228,9 +228,9 @@ MainWindow::MainWindow(QWidget *parent) :
     QValueAxis *amplitude_axisX = new QValueAxis;
     amplitude_axisX->setRange(0, 65536);
     amplitude_axisX->setLabelFormat("%g");
-    amplitude_axisX->setTitleText("time");
+    amplitude_axisX->setTitleText("Hz");
     QValueAxis *amplitude_axisY = new QValueAxis;
-    amplitude_axisY->setRange(0, 1000);
+    amplitude_axisY->setRange(0, 5000);
     amplitude_axisY->setTitleText("Audio level");
     amplitude_chart->setAxisX(amplitude_axisX, amplitude_series);
     amplitude_chart->setAxisY(amplitude_axisY, amplitude_series);
@@ -242,14 +242,14 @@ MainWindow::MainWindow(QWidget *parent) :
     //频域上的相位
     QChart *phase_chart = new QChart;
     QChartView *phase_chartView = new QChartView(phase_chart);
-    QLineSeries *phase_series = new QLineSeries;
+    phase_series = new QLineSeries;
     phase_chart->addSeries(phase_series);
     QValueAxis *phase_axisX = new QValueAxis;
-    phase_axisX->setRange(0, 2000);
+    phase_axisX->setRange(0, 65536);
     phase_axisX->setLabelFormat("%g");
     phase_axisX->setTitleText("time");
     QValueAxis *phase_axisY = new QValueAxis;
-    phase_axisY->setRange(-1, 1);
+    phase_axisY->setRange(-5, 5);
     phase_axisY->setTitleText("Audio level");
     phase_chart->setAxisX(phase_axisX, phase_series);
     phase_chart->setAxisY(phase_axisY, phase_series);
@@ -473,11 +473,12 @@ int MainWindow::show_amplitude_waveform(char * file_path)
     fftw_plan p = FFTW3_H::fftw_plan_dft_r2c_1d(N, in, out, FFTW_ESTIMATE);
     fftw_execute(p);
 
-    double dx3 = (double)48000 / N;
+    double dx3 = (double)SAMPLE_RATE / N;
 
     QVector<QPointF> points;
     points = amplitude_series->pointsVector();
 
+    //根据FFT计算的复数计算振幅谱
     for( int i=0; i<N; i++ )
     {
         double val = sqrt(out[i][0] * out[i][0] + out[i][1] * out[i][1]);
@@ -487,6 +488,21 @@ int MainWindow::show_amplitude_waveform(char * file_path)
     }
 
     amplitude_series->replace(points);
+
+
+    QVector<QPointF> points_1;
+    points_1 = phase_series->pointsVector();
+
+    //根据FFT计算的复数计算相位谱
+    for( int i=0; i<N; i++ )
+    {
+        double val = atan2(out[i][1], out[i][0]);
+        points_1.append(QPointF(dx3 * i, val));
+
+        qDebug("dx3 = %f, val = %f", dx3 * i, val);
+    }
+
+    phase_series->replace(points_1);
 
     fclose(fp1);    //关闭文件指针
     fftw_destroy_plan(p);

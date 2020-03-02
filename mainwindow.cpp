@@ -27,45 +27,6 @@
 #define BIT_RATE     (16)
 #define BYTE_RATE    (2)
 
-void fft_test(void)
-{
-    int N = 5;
-
-    /**********************一维复数DFT变换，复数到复数**********************/
-    fftw_complex *in1_c, *out1_c;//声明复数类型的输入数据in1_c和FFT变换的结果out1_c
-    fftw_plan p;//声明变换策略
-    in1_c = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)* N);//申请动态内存,这里构造二维数组的方式值得学习
-    out1_c = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)* N);
-    p = fftw_plan_dft_1d(N, in1_c, out1_c, FFTW_FORWARD, FFTW_ESTIMATE);//返回变换策略
-
-    int n;
-    for (n = 0; n<N; n++)//构造输入数据
-    {
-        in1_c[n][0] = 1;
-        in1_c[n][1] = 2;
-        //*(*(in1_c + n) + 0) = 1;
-        //*(*(in1_c + n) + 1) = 2;
-    }
-    fftw_execute(p);//执行变换
-    fftw_destroy_plan(p);//销毁策略
-
-    //以下为打印代码
-    qDebug("data of FFT is:\n");
-    for (n = 0; n<N; n++)
-    {
-        qDebug("%3.2lf+%3.2lfi    ", in1_c[n][0], in1_c[n][1]);
-    }
-    qDebug("\n");
-    qDebug("result of FFT is:\n");
-    for (n = 0; n<N; n++)
-    {
-        qDebug("%3.2lf+%3.2lfi    ", out1_c[n][0], out1_c[n][1]);
-        qDebug()<<out1_c[n][0]<<out1_c[n][1];
-    }
-    qDebug("\n");
-    fftw_free(in1_c); fftw_free(out1_c);//释放内存
-}
-
 //将wav文件转为pcm文件
 int wav2pcm(char *in_file, char *out_file)
 {
@@ -117,7 +78,7 @@ MainWindow::MainWindow(QWidget *parent) :
     this->setCentralWidget(widget);
 
     //创建标签
-    QLabel * switch_label = new QLabel("选择录音文件路径：");
+    QLabel * switch_label = new QLabel("选择录音文件1路径：");
 
     //创建一个文本框
     path_lineedit = new QLineEdit();
@@ -133,6 +94,24 @@ MainWindow::MainWindow(QWidget *parent) :
     hLayout_1->addWidget(save_button);
     hLayout_1->setSpacing(10);
     hLayout_1->setContentsMargins(0,0,10,10);
+
+    //创建标签
+    QLabel * switch_label_2 = new QLabel("选择录音文件2路径：");
+
+    //创建一个文本框
+    path_lineedit_2 = new QLineEdit();
+
+    //选择路径按钮
+    QPushButton * save_button_2 = new QPushButton("打开");
+    connect(save_button_2, SIGNAL(clicked()), this, SLOT(slots_save_button_2_clicked()));
+
+    //选择路径的水平布局
+    QHBoxLayout *hLayout_1_2 = new QHBoxLayout();
+    hLayout_1_2->addWidget(switch_label_2);
+    hLayout_1_2->addWidget(path_lineedit_2);
+    hLayout_1_2->addWidget(save_button_2);
+    hLayout_1_2->setSpacing(10);
+    hLayout_1_2->setContentsMargins(0,0,10,10);
 
     //开始录音
     QPushButton * start_recorder_button = new QPushButton("开始录音");
@@ -197,6 +176,11 @@ MainWindow::MainWindow(QWidget *parent) :
 
     tabwidget->addTab(mic_chartView, "本机麦克风");
 
+    //
+    QWidget *wave_widget = new QWidget();
+    //按钮的水平布局
+    QGridLayout *gLayout = new QGridLayout();
+
     //时域波形
     pcm_chart = new QChart;
     QChartView *pcm_chartView = new QChartView(pcm_chart);
@@ -215,12 +199,11 @@ MainWindow::MainWindow(QWidget *parent) :
     pcm_chart->setAxisX(pcm_axisX, pcm_series);
     pcm_chart->setAxisY(pcm_axisY, pcm_series);
     pcm_chart->legend()->hide();
-    pcm_chart->setTitle("Data from the pcm file");
-
-    tabwidget->addTab(pcm_chartView, "时域波形");
+    pcm_chart->setTitle("输入信号时域波形");
+    gLayout->addWidget(pcm_chartView, 0, 0);
 
     //频域上的幅度
-    QChart *amplitude_chart = new QChart;
+    amplitude_chart = new QChart;
     QChartView *amplitude_chartView = new QChartView(amplitude_chart);
     amplitude_chartView->setRubberBand(QChartView::HorizontalRubberBand);
     amplitude_series = new QLineSeries;
@@ -230,36 +213,96 @@ MainWindow::MainWindow(QWidget *parent) :
     amplitude_axisX->setLabelFormat("%g");
     amplitude_axisX->setTitleText("Hz");
     QValueAxis *amplitude_axisY = new QValueAxis;
-    amplitude_axisY->setRange(0, 5000);
+    amplitude_axisY->setRange(0, 10000);
     amplitude_axisY->setTitleText("Audio level");
     amplitude_chart->setAxisX(amplitude_axisX, amplitude_series);
     amplitude_chart->setAxisY(amplitude_axisY, amplitude_series);
     amplitude_chart->legend()->hide();
-    amplitude_chart->setTitle("Data from the pcm file");
-
-    tabwidget->addTab(amplitude_chartView, "频域上的幅度");
+    amplitude_chart->setTitle("输入信号频域的幅度");
+    gLayout->addWidget(amplitude_chartView, 0, 1);
 
     //频域上的相位
-    QChart *phase_chart = new QChart;
+    phase_chart = new QChart;
     QChartView *phase_chartView = new QChartView(phase_chart);
     phase_series = new QLineSeries;
     phase_chart->addSeries(phase_series);
     QValueAxis *phase_axisX = new QValueAxis;
     phase_axisX->setRange(0, 65536);
     phase_axisX->setLabelFormat("%g");
-    phase_axisX->setTitleText("time");
+    phase_axisX->setTitleText("Hz");
     QValueAxis *phase_axisY = new QValueAxis;
     phase_axisY->setRange(-5, 5);
-    phase_axisY->setTitleText("Audio level");
+    phase_axisY->setTitleText("Angle");
     phase_chart->setAxisX(phase_axisX, phase_series);
     phase_chart->setAxisY(phase_axisY, phase_series);
     phase_chart->legend()->hide();
-    phase_chart->setTitle("Data from the pcm file");
+    phase_chart->setTitle("输入信号频域上的相位");
+    gLayout->addWidget(phase_chartView, 0, 2);
 
-    tabwidget->addTab(phase_chartView, "频域上的相位");
+    //时域波形
+    pcm_chart_out = new QChart;
+    QChartView *pcm_chartView_out = new QChartView(pcm_chart_out);
+    pcm_chartView_out->setRubberBand(QChartView::HorizontalRubberBand);
+    pcm_series_out = new QLineSeries;
+    pcm_chart_out->addSeries(pcm_series_out);
+    pcm_axisX_out = new QDateTimeAxis;
+    pcm_min_out.setMSecsSinceEpoch(0);
+    pcm_max_out.setMSecsSinceEpoch(10000);
+    pcm_axisX_out->setRange(pcm_min_out, pcm_max_out);
+    pcm_axisX_out->setFormat("ss.zzz");
+    pcm_axisX_out->setTitleText("time");
+    QValueAxis *pcm_axisY_out = new QValueAxis;
+    pcm_axisY_out->setRange(-1, 1);
+    pcm_axisY_out->setTitleText("Audio level");
+    pcm_chart_out->setAxisX(pcm_axisX_out, pcm_series_out);
+    pcm_chart_out->setAxisY(pcm_axisY_out, pcm_series_out);
+    pcm_chart_out->legend()->hide();
+    pcm_chart_out->setTitle("输出信号时域波形");
+    gLayout->addWidget(pcm_chartView_out, 1, 0);
+
+    //频域上的幅度
+    QChart *amplitude_chart_out = new QChart;
+    QChartView *amplitude_chartView_out = new QChartView(amplitude_chart_out);
+    amplitude_chartView_out->setRubberBand(QChartView::HorizontalRubberBand);
+    amplitude_series_out = new QLineSeries;
+    amplitude_chart_out->addSeries(amplitude_series_out);
+    QValueAxis *amplitude_axisX_out = new QValueAxis;
+    amplitude_axisX_out->setRange(0, 65536);
+    amplitude_axisX_out->setLabelFormat("%g");
+    amplitude_axisX_out->setTitleText("Hz");
+    QValueAxis *amplitude_axisY_out = new QValueAxis;
+    amplitude_axisY_out->setRange(0, 10000);
+    amplitude_axisY_out->setTitleText("Audio level");
+    amplitude_chart_out->setAxisX(amplitude_axisX_out, amplitude_series_out);
+    amplitude_chart_out->setAxisY(amplitude_axisY_out, amplitude_series_out);
+    amplitude_chart_out->legend()->hide();
+    amplitude_chart_out->setTitle("输出信号频域的幅度");
+    gLayout->addWidget(amplitude_chartView_out, 1, 1);
+
+    //频域上的相位
+    QChart *phase_chart_out = new QChart;
+    QChartView *phase_chartView_out = new QChartView(phase_chart_out);
+    phase_series_out = new QLineSeries;
+    phase_chart_out->addSeries(phase_series_out);
+    QValueAxis *phase_axisX_out = new QValueAxis;
+    phase_axisX_out->setRange(0, 65536);
+    phase_axisX_out->setLabelFormat("%g");
+    phase_axisX_out->setTitleText("Hz");
+    QValueAxis *phase_axisY_out = new QValueAxis;
+    phase_axisY_out->setRange(-5, 5);
+    phase_axisY_out->setTitleText("Angle");
+    phase_chart_out->setAxisX(phase_axisX_out, phase_series_out);
+    phase_chart_out->setAxisY(phase_axisY_out, phase_series_out);
+    phase_chart_out->legend()->hide();
+    phase_chart_out->setTitle("输出信号频域上的相位");
+    gLayout->addWidget(phase_chartView_out, 1, 2);
+
+    wave_widget->setLayout(gLayout);
+    tabwidget->addTab(wave_widget, "FFT");
 
     QVBoxLayout *vLayout = new QVBoxLayout();
     vLayout->addLayout(hLayout_1);
+    vLayout->addLayout(hLayout_1_2);
     vLayout->addLayout(hLayout_2);
     vLayout->addWidget(tabwidget);
 
@@ -307,6 +350,19 @@ void MainWindow::slots_save_button_clicked()
                                                     desktop_path,
                                                     "*.");
     path_lineedit->setText(fileName);
+
+    audioRecorder->setOutputLocation(QUrl::fromLocalFile(fileName));
+}
+
+//选择路径
+void MainWindow::slots_save_button_2_clicked()
+{
+    QString desktop_path = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
+    QString fileName = QFileDialog::getSaveFileName(this,
+                                                    "保存文件",
+                                                    desktop_path,
+                                                    "*.");
+    path_lineedit_2->setText(fileName);
 
     audioRecorder->setOutputLocation(QUrl::fromLocalFile(fileName));
 }
@@ -479,12 +535,13 @@ int MainWindow::show_amplitude_waveform(char * file_path)
     points = amplitude_series->pointsVector();
 
     //根据FFT计算的复数计算振幅谱
-    for( int i=0; i<N; i++ )
+    for( int i=0; i<N/2; i++ )
     {
         double val = sqrt(out[i][0] * out[i][0] + out[i][1] * out[i][1]);
         points.append(QPointF(dx3 * i, val / (N / 2)));
 
-        //qDebug("dx3 = %f, val = %f", dx3 * i, val);
+        double db = log(val);
+        qDebug("frequency = %f, amplitude = %f, db = %f", dx3 * i, val / (N / 2), db);
     }
 
     amplitude_series->replace(points);
@@ -494,12 +551,10 @@ int MainWindow::show_amplitude_waveform(char * file_path)
     points_1 = phase_series->pointsVector();
 
     //根据FFT计算的复数计算相位谱
-    for( int i=0; i<N; i++ )
+    for( int i=0; i<N/2; i++ )
     {
         double val = atan2(out[i][1], out[i][0]);
         points_1.append(QPointF(dx3 * i, val));
-
-        qDebug("dx3 = %f, val = %f", dx3 * i, val);
     }
 
     phase_series->replace(points_1);
@@ -509,6 +564,8 @@ int MainWindow::show_amplitude_waveform(char * file_path)
     free(buf);      //释放buf
     fftw_free(in);
     fftw_free(out);
+
+    return 0;
 }
 
 //开始FFT
@@ -531,8 +588,6 @@ void MainWindow::slots_start_fft_button_clicked()
     //时域波形
     show_time_waveform(in_ch);
 
-    //频域的幅度
+    //频域的幅度和相位
     show_amplitude_waveform(in_ch);
-
-    //频域的相位
 }

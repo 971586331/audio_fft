@@ -41,27 +41,27 @@ print("angle_y = ", angle_y)
 normalization_y = abs_y / N  # 归一化处理（双边频谱）
 normalization_half_y = normalization_y[range(int(N / 2))]  # 由于对称性，只取一半区间（单边频谱）
 
-plt.subplot(231)
-plt.plot(x, y)
-plt.title('原始波形')
+# plt.subplot(231)
+# plt.plot(x, y)
+# plt.title('原始波形')
+#
+# plt.subplot(232)
+# plt.plot(x, fft_y, 'black')
+# plt.title('双边振幅谱(未求振幅绝对值)', fontsize=9, color='black')
+#
+# plt.subplot(233)
+# plt.plot(x, abs_y, 'r')
+# plt.title('双边振幅谱(未归一化)', fontsize=9, color='red')
+#
+# plt.subplot(234)
+# plt.plot(x, angle_y, 'violet')
+# plt.title('双边相位谱(未归一化)', fontsize=9, color='violet')
+#
+# plt.subplot(235)
+# plt.plot(x, normalization_y, 'g')
+# plt.title('双边振幅谱(归一化)', fontsize=9, color='green')
 
-plt.subplot(232)
-plt.plot(x, fft_y, 'black')
-plt.title('双边振幅谱(未求振幅绝对值)', fontsize=9, color='black')
-
-plt.subplot(233)
-plt.plot(x, abs_y, 'r')
-plt.title('双边振幅谱(未归一化)', fontsize=9, color='red')
-
-plt.subplot(234)
-plt.plot(x, angle_y, 'violet')
-plt.title('双边相位谱(未归一化)', fontsize=9, color='violet')
-
-plt.subplot(235)
-plt.plot(x, normalization_y, 'g')
-plt.title('双边振幅谱(归一化)', fontsize=9, color='green')
-
-plt.subplot(236)
+# plt.subplot(236)
 plt.plot(half_x, normalization_half_y, 'blue')
 plt.title('单边振幅谱(归一化)', fontsize=9, color='blue')
 

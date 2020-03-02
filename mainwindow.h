@@ -42,6 +42,7 @@ public:
 
 private slots:
     void slots_save_button_clicked(void);
+    void slots_save_button_2_clicked(void);
     void slots_start_recorder_button_clicked(void);
     void slots_stop_recorder_button_clicked(void);
     void slots_transform_button_clicked(void);
@@ -57,6 +58,7 @@ private:
     QAudioInput *mic_audioInput;
 
     QLineEdit * path_lineedit;
+    QLineEdit * path_lineedit_2;
     QLabel * status_Label;
     QAudioRecorder * audioRecorder;
     QAudioOutput * audio;
@@ -65,11 +67,22 @@ private:
     QDateTimeAxis *pcm_axisX;
     QLineSeries *pcm_series;
     QChart *pcm_chart;
+    QChart *amplitude_chart;
+    QChart *phase_chart;
     QDateTime pcm_min;
     QDateTime pcm_max;
 
+    QDateTimeAxis *pcm_axisX_out;
+    QLineSeries *pcm_series_out;
+    QChart *pcm_chart_out;
+    QDateTime pcm_min_out;
+    QDateTime pcm_max_out;
+
     QLineSeries *amplitude_series;
     QLineSeries *phase_series;
+
+    QLineSeries *amplitude_series_out;
+    QLineSeries *phase_series_out;
 };
 
 #endif // MAINWINDOW_H

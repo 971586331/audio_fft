@@ -5,7 +5,7 @@
 #-------------------------------------------------
 
 QT       += core gui charts multimedia
-greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
+greaterThan(QT_MAJOR_VERSION, 4): QT += widgets printsupport
 
 TARGET = audio_fft
 TEMPLATE = app
@@ -25,12 +25,14 @@ DEFINES += QT_DEPRECATED_WARNINGS
 SOURCES += \
         main.cpp \
         mainwindow.cpp \
-    xyseriesiodevice.cpp
+    xyseriesiodevice.cpp \
+    qcustomplot.cpp
 
 HEADERS += \
         mainwindow.h \
     fftw-3.3.5-dll32/fftw3.h \
-    xyseriesiodevice.h
+    xyseriesiodevice.h \
+    qcustomplot.h
 
 FORMS += \
         mainwindow.ui

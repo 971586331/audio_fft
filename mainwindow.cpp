@@ -22,6 +22,7 @@
 #include <QStandardPaths>
 #include <QDateTimeAxis>
 #include <QDateTime>
+#include "qcustomplot.h"
 
 #define SAMPLE_RATE  (48000)
 #define BIT_RATE     (16)
@@ -181,121 +182,108 @@ MainWindow::MainWindow(QWidget *parent) :
     //按钮的水平布局
     QGridLayout *gLayout = new QGridLayout();
 
-    //时域波形
-    pcm_chart = new QChart;
-    QChartView *pcm_chartView = new QChartView(pcm_chart);
-    pcm_chartView->setRubberBand(QChartView::HorizontalRubberBand);
-    pcm_series = new QLineSeries;
-    pcm_chart->addSeries(pcm_series);
-    pcm_axisX = new QDateTimeAxis;
-    pcm_min.setMSecsSinceEpoch(0);
-    pcm_max.setMSecsSinceEpoch(10000);
-    pcm_axisX->setRange(pcm_min, pcm_max);
-    pcm_axisX->setFormat("ss.zzz");
-    pcm_axisX->setTitleText("time");
-    QValueAxis *pcm_axisY = new QValueAxis;
-    pcm_axisY->setRange(-1, 1);
-    pcm_axisY->setTitleText("Audio level");
-    pcm_chart->setAxisX(pcm_axisX, pcm_series);
-    pcm_chart->setAxisY(pcm_axisY, pcm_series);
-    pcm_chart->legend()->hide();
-    pcm_chart->setTitle("输入信号时域波形");
-    gLayout->addWidget(pcm_chartView, 0, 0);
+    //输入的时域波形
+    QWidget *in_pcm_widget = new QWidget();
+    in_pcm_polt = new QCustomPlot(in_pcm_widget);
+    in_pcm_polt->plotLayout()->insertRow(0);
+    QCPTextElement *in_pcm_title = new QCPTextElement(in_pcm_polt, "输入的时域波形", QFont("sans", 10, QFont::Bold));
+    in_pcm_polt->plotLayout()->addElement(0, 0, in_pcm_title);
+    in_pcm_polt->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom);
+    in_pcm_polt->axisRect()->setRangeZoom(Qt::Horizontal);
+    in_pcm_polt->xAxis->setLabel("时间(ms)");
+    in_pcm_polt->yAxis->setLabel("电压采样值(V)");
+    in_pcm_polt->addGraph();
 
-    //频域上的幅度
-    amplitude_chart = new QChart;
-    QChartView *amplitude_chartView = new QChartView(amplitude_chart);
-    amplitude_chartView->setRubberBand(QChartView::HorizontalRubberBand);
-    amplitude_series = new QLineSeries;
-    amplitude_chart->addSeries(amplitude_series);
-    QValueAxis *amplitude_axisX = new QValueAxis;
-    amplitude_axisX->setRange(0, 65536);
-    amplitude_axisX->setLabelFormat("%g");
-    amplitude_axisX->setTitleText("Hz");
-    QValueAxis *amplitude_axisY = new QValueAxis;
-    amplitude_axisY->setRange(0, 10000);
-    amplitude_axisY->setTitleText("Audio level");
-    amplitude_chart->setAxisX(amplitude_axisX, amplitude_series);
-    amplitude_chart->setAxisY(amplitude_axisY, amplitude_series);
-    amplitude_chart->legend()->hide();
-    amplitude_chart->setTitle("输入信号频域的幅度");
-    gLayout->addWidget(amplitude_chartView, 0, 1);
+    in_pcm_polt->graph(0)->setPen(QPen(Qt::red));
+    in_pcm_polt->graph(0)->setScatterStyle(QCPScatterStyle::ssDot);
 
-    //频域上的相位
-    phase_chart = new QChart;
-    QChartView *phase_chartView = new QChartView(phase_chart);
-    phase_series = new QLineSeries;
-    phase_chart->addSeries(phase_series);
-    QValueAxis *phase_axisX = new QValueAxis;
-    phase_axisX->setRange(0, 65536);
-    phase_axisX->setLabelFormat("%g");
-    phase_axisX->setTitleText("Hz");
-    QValueAxis *phase_axisY = new QValueAxis;
-    phase_axisY->setRange(-5, 5);
-    phase_axisY->setTitleText("Angle");
-    phase_chart->setAxisX(phase_axisX, phase_series);
-    phase_chart->setAxisY(phase_axisY, phase_series);
-    phase_chart->legend()->hide();
-    phase_chart->setTitle("输入信号频域上的相位");
-    gLayout->addWidget(phase_chartView, 0, 2);
+    gLayout->addWidget(in_pcm_polt, 0, 0);
 
-    //时域波形
-    pcm_chart_out = new QChart;
-    QChartView *pcm_chartView_out = new QChartView(pcm_chart_out);
-    pcm_chartView_out->setRubberBand(QChartView::HorizontalRubberBand);
-    pcm_series_out = new QLineSeries;
-    pcm_chart_out->addSeries(pcm_series_out);
-    pcm_axisX_out = new QDateTimeAxis;
-    pcm_min_out.setMSecsSinceEpoch(0);
-    pcm_max_out.setMSecsSinceEpoch(10000);
-    pcm_axisX_out->setRange(pcm_min_out, pcm_max_out);
-    pcm_axisX_out->setFormat("ss.zzz");
-    pcm_axisX_out->setTitleText("time");
-    QValueAxis *pcm_axisY_out = new QValueAxis;
-    pcm_axisY_out->setRange(-1, 1);
-    pcm_axisY_out->setTitleText("Audio level");
-    pcm_chart_out->setAxisX(pcm_axisX_out, pcm_series_out);
-    pcm_chart_out->setAxisY(pcm_axisY_out, pcm_series_out);
-    pcm_chart_out->legend()->hide();
-    pcm_chart_out->setTitle("输出信号时域波形");
-    gLayout->addWidget(pcm_chartView_out, 1, 0);
 
-    //频域上的幅度
-    QChart *amplitude_chart_out = new QChart;
-    QChartView *amplitude_chartView_out = new QChartView(amplitude_chart_out);
-    amplitude_chartView_out->setRubberBand(QChartView::HorizontalRubberBand);
-    amplitude_series_out = new QLineSeries;
-    amplitude_chart_out->addSeries(amplitude_series_out);
-    QValueAxis *amplitude_axisX_out = new QValueAxis;
-    amplitude_axisX_out->setRange(0, 65536);
-    amplitude_axisX_out->setLabelFormat("%g");
-    amplitude_axisX_out->setTitleText("Hz");
-    QValueAxis *amplitude_axisY_out = new QValueAxis;
-    amplitude_axisY_out->setRange(0, 10000);
-    amplitude_axisY_out->setTitleText("Audio level");
-    amplitude_chart_out->setAxisX(amplitude_axisX_out, amplitude_series_out);
-    amplitude_chart_out->setAxisY(amplitude_axisY_out, amplitude_series_out);
-    amplitude_chart_out->legend()->hide();
-    amplitude_chart_out->setTitle("输出信号频域的幅度");
-    gLayout->addWidget(amplitude_chartView_out, 1, 1);
+    //输入的频域上的幅度
+    QWidget *in_amplitude_widget = new QWidget();
+    in_amplitude_polt = new QCustomPlot(in_amplitude_widget);
+    in_amplitude_polt->plotLayout()->insertRow(0);
+    QCPTextElement *in_amplitude_title = new QCPTextElement(in_amplitude_polt, "输入的频域幅度", QFont("sans", 10, QFont::Bold));
+    in_amplitude_polt->plotLayout()->addElement(0, 0, in_amplitude_title);
+    in_amplitude_polt->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom);
+    in_amplitude_polt->axisRect()->setRangeZoom(Qt::Horizontal);
+    in_amplitude_polt->xAxis->setLabel("频率(Hz)");
+    in_amplitude_polt->yAxis->setLabel("幅度(V)");
+    in_amplitude_polt->addGraph();
 
-    //频域上的相位
-    QChart *phase_chart_out = new QChart;
-    QChartView *phase_chartView_out = new QChartView(phase_chart_out);
-    phase_series_out = new QLineSeries;
-    phase_chart_out->addSeries(phase_series_out);
-    QValueAxis *phase_axisX_out = new QValueAxis;
-    phase_axisX_out->setRange(0, 65536);
-    phase_axisX_out->setLabelFormat("%g");
-    phase_axisX_out->setTitleText("Hz");
-    QValueAxis *phase_axisY_out = new QValueAxis;
-    phase_axisY_out->setRange(-5, 5);
-    phase_axisY_out->setTitleText("Angle");
-    phase_chart_out->setAxisX(phase_axisX_out, phase_series_out);
-    phase_chart_out->setAxisY(phase_axisY_out, phase_series_out);
-    phase_chart_out->legend()->hide();
-    phase_chart_out->setTitle("输出信号频域上的相位");
-    gLayout->addWidget(phase_chartView_out, 1, 2);
+    in_amplitude_polt->graph(0)->setPen(QPen(Qt::red));
+    in_amplitude_polt->graph(0)->setScatterStyle(QCPScatterStyle::ssDot);
+
+    gLayout->addWidget(in_amplitude_polt, 0, 1);
+
+    //输入的频域上的相位
+    QWidget *in_phase_widget = new QWidget();
+    in_phase_polt = new QCustomPlot(in_phase_widget);
+    in_phase_polt->plotLayout()->insertRow(0);
+    QCPTextElement *in_phase_title = new QCPTextElement(in_phase_polt, "输入的频域相位", QFont("sans", 10, QFont::Bold));
+    in_phase_polt->plotLayout()->addElement(0, 0, in_phase_title);
+    in_phase_polt->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom);
+    in_phase_polt->axisRect()->setRangeZoom(Qt::Horizontal);
+    in_phase_polt->xAxis->setLabel("频率(Hz)");
+    in_phase_polt->yAxis->setLabel("相位(度)");
+    in_phase_polt->addGraph();
+
+    in_phase_polt->graph(0)->setPen(QPen(Qt::red));
+    in_phase_polt->graph(0)->setScatterStyle(QCPScatterStyle::ssDot);
+
+    gLayout->addWidget(in_phase_polt, 0, 2);
+
+    //输出的时域波形
+    QWidget *out_pcm_widget = new QWidget();
+    out_pcm_polt = new QCustomPlot(out_pcm_widget);
+    out_pcm_polt->plotLayout()->insertRow(0);
+    QCPTextElement *out_pcm_title = new QCPTextElement(out_pcm_polt, "输出的时域波形", QFont("sans", 10, QFont::Bold));
+    out_pcm_polt->plotLayout()->addElement(0, 0, out_pcm_title);
+    out_pcm_polt->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom);
+    out_pcm_polt->axisRect()->setRangeZoom(Qt::Horizontal);
+    out_pcm_polt->xAxis->setLabel("时间(ms)");
+    out_pcm_polt->yAxis->setLabel("电压采样值(V)");
+    out_pcm_polt->addGraph();
+
+    out_pcm_polt->graph(0)->setPen(QPen(Qt::red));
+    out_pcm_polt->graph(0)->setScatterStyle(QCPScatterStyle::ssDot);
+
+    gLayout->addWidget(out_pcm_polt, 1, 0);
+
+    //输出的频域幅度
+    QWidget *out_amplitude_widget = new QWidget();
+    out_amplitude_polt = new QCustomPlot(out_amplitude_widget);
+    out_amplitude_polt->plotLayout()->insertRow(0);
+    QCPTextElement *out_amplitude_title = new QCPTextElement(out_amplitude_polt, "输出的频域幅度", QFont("sans", 10, QFont::Bold));
+    out_amplitude_polt->plotLayout()->addElement(0, 0, out_amplitude_title);
+    out_amplitude_polt->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom);
+    out_amplitude_polt->axisRect()->setRangeZoom(Qt::Horizontal);
+    out_amplitude_polt->xAxis->setLabel("频率(Hz)");
+    out_amplitude_polt->yAxis->setLabel("幅度(V)");
+    out_amplitude_polt->addGraph();
+
+    out_amplitude_polt->graph(0)->setPen(QPen(Qt::red));
+    out_amplitude_polt->graph(0)->setScatterStyle(QCPScatterStyle::ssDot);
+
+    gLayout->addWidget(out_amplitude_polt, 1, 1);
+
+    //输出的频域相位
+    QWidget *out_phase_widget = new QWidget();
+    out_phase_polt = new QCustomPlot(out_phase_widget);
+    out_phase_polt->plotLayout()->insertRow(0);
+    QCPTextElement *out_phase_title = new QCPTextElement(out_phase_polt, "输出的频域相位", QFont("sans", 10, QFont::Bold));
+    out_phase_polt->plotLayout()->addElement(0, 0, out_phase_title);
+    out_phase_polt->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom);
+    out_phase_polt->axisRect()->setRangeZoom(Qt::Horizontal);
+    out_phase_polt->xAxis->setLabel("频率(Hz)");
+    out_phase_polt->yAxis->setLabel("相位(度)");
+    out_phase_polt->addGraph();
+
+    out_phase_polt->graph(0)->setPen(QPen(Qt::red));
+    out_phase_polt->graph(0)->setScatterStyle(QCPScatterStyle::ssDot);
+
+    gLayout->addWidget(out_phase_polt, 1, 2);
 
     wave_widget->setLayout(gLayout);
     tabwidget->addTab(wave_widget, "FFT");
@@ -425,7 +413,7 @@ void MainWindow::slots_play_pcm_button_clicked()
 }
 
 //显示时域波形
-int MainWindow::show_time_waveform(char * file_path)
+int MainWindow::show_time_waveform(char * file_path, QCustomPlot * polt)
 {
     size_t result;
     char  *buf;
@@ -442,15 +430,8 @@ int MainWindow::show_time_waveform(char * file_path)
 
     //计算时间，设置坐标轴
     int fp_ms = (filesize / sizeof(unsigned short))*1000 / SAMPLE_RATE;
-    pcm_max.setMSecsSinceEpoch(fp_ms);
-    pcm_axisX->setRange(pcm_min, pcm_max);
-
-    if( fp_ms < 60*1000 )
-        pcm_axisX->setFormat("ss.zzz");
-    if( (fp_ms >= 60*1000) && (fp_ms < 60*60*1000) )
-        pcm_axisX->setFormat("mm.ss.zzz");
-    if( fp_ms > 60*60*1000 )
-        pcm_axisX->setFormat("hh.mm.ss.zzz");
+    polt->xAxis->setRange(0, fp_ms, Qt::AlignLeft);
+    polt->yAxis->setRange(0, 2, Qt::AlignBottom);
 
     rewind(fp1);//还原指针位置
     buf=(char *)malloc(filesize);//开辟空间给缓存数组
@@ -467,25 +448,21 @@ int MainWindow::show_time_waveform(char * file_path)
         return -1;
     }
 
-    QVector<QPointF> points;
-    points = pcm_series->pointsVector();
-
     for( int i=0; i<filesize/2; i++ )
     {
-        //short x = buf[i*2] + buf[i*2+1]*255;
         short x = *((short *)(buf+(i*2)));
-        points.append(QPointF(((double)1000/SAMPLE_RATE)*i, ((double)x)/32768));
+        polt->graph(0)->addData( ((double)1000/SAMPLE_RATE)*i, (((double)x)/32768) );
     }
-
-    pcm_series->replace(points);
+    polt->replot();
 
     fclose(fp1);//关闭文件指针
     free (buf);//释放buf
 }
 
 //显示频域的幅度
-int MainWindow::show_amplitude_waveform(char * file_path)
+int MainWindow::show_amplitude_waveform(char * file_path, QCustomPlot *polt_1, QCustomPlot *polt_2)
 {
+    double val_max = 0;
     size_t result;
     char  *buf;
     short *in_buf;
@@ -531,33 +508,36 @@ int MainWindow::show_amplitude_waveform(char * file_path)
 
     double dx3 = (double)SAMPLE_RATE / N;
 
-    QVector<QPointF> points;
-    points = amplitude_series->pointsVector();
+    polt_1->xAxis->setRange(0, SAMPLE_RATE/2, Qt::AlignLeft);
 
     //根据FFT计算的复数计算振幅谱
     for( int i=0; i<N/2; i++ )
     {
         double val = sqrt(out[i][0] * out[i][0] + out[i][1] * out[i][1]);
-        points.append(QPointF(dx3 * i, val / (N / 2)));
+        val = val / (N / 2);
+        polt_1->graph(0)->addData( dx3 * i, val );
+
+        if( val > val_max )
+        {
+            val_max = val;
+        }
 
         double db = log(val);
-        qDebug("frequency = %f, amplitude = %f, db = %f", dx3 * i, val / (N / 2), db);
+        //qDebug("frequency = %f, amplitude = %f, db = %f", dx3 * i, val / (N / 2), db);
     }
 
-    amplitude_series->replace(points);
+    polt_1->yAxis->setRange(val_max*0.6, val_max*1.2, Qt::AlignBottom);
+    polt_1->replot();
 
-
-    QVector<QPointF> points_1;
-    points_1 = phase_series->pointsVector();
-
+    polt_2->xAxis->setRange(0, SAMPLE_RATE/2, Qt::AlignLeft);
+    polt_2->yAxis->setRange(0, 10, Qt::AlignBaseline);
     //根据FFT计算的复数计算相位谱
     for( int i=0; i<N/2; i++ )
     {
         double val = atan2(out[i][1], out[i][0]);
-        points_1.append(QPointF(dx3 * i, val));
+        polt_2->graph(0)->addData( dx3 * i, val );
     }
-
-    phase_series->replace(points_1);
+    polt_2->replot();
 
     fclose(fp1);    //关闭文件指针
     fftw_destroy_plan(p);
@@ -574,8 +554,8 @@ void MainWindow::slots_start_fft_button_clicked()
     QString  in_str;
     in_str = path_lineedit->text() + ".pcm";
 
-    QFileInfo fileInfo(in_str);
-    if(!fileInfo.isFile())
+    QFileInfo in_fileInfo(in_str);
+    if(!in_fileInfo.isFile())
     {
         QMessageBox::critical(NULL, "错误", "\"" + in_str + "\"" + "文件不存在！", QMessageBox::Yes, QMessageBox::Yes);
         return;
@@ -586,8 +566,28 @@ void MainWindow::slots_start_fft_button_clicked()
     in_ch = in_ba.data();
 
     //时域波形
-    show_time_waveform(in_ch);
+    show_time_waveform(in_ch, in_pcm_polt);
 
     //频域的幅度和相位
-    show_amplitude_waveform(in_ch);
+    show_amplitude_waveform(in_ch, in_amplitude_polt, in_phase_polt);
+
+    QString  out_str;
+    out_str = path_lineedit_2->text() + ".pcm";
+
+    QFileInfo out_fileInfo(out_str);
+    if(!out_fileInfo.isFile())
+    {
+        QMessageBox::critical(NULL, "错误", "\"" + in_str + "\"" + "文件不存在！", QMessageBox::Yes, QMessageBox::Yes);
+        return;
+    }
+
+    char * out_ch;
+    QByteArray out_ba = out_str.toLatin1();
+    out_ch = out_ba.data();
+
+    //时域波形
+    show_time_waveform(out_ch, out_pcm_polt);
+
+    //频域的幅度和相位
+    show_amplitude_waveform(out_ch, out_amplitude_polt, out_phase_polt);
 }

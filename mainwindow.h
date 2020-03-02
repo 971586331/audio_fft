@@ -11,6 +11,7 @@
 #include <QSoundEffect>
 #include <QDateTimeAxis>
 #include <QDateTime>
+#include "qcustomplot.h"
 
 QT_CHARTS_BEGIN_NAMESPACE
 class QLineSeries;
@@ -37,8 +38,8 @@ public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
 
-    int show_time_waveform(char * file_path);
-    int show_amplitude_waveform(char * file_path);
+    int show_time_waveform(char * file_path, QCustomPlot *polt);
+    int show_amplitude_waveform(char * file_path, QCustomPlot *polt_1, QCustomPlot *polt_2);
 
 private slots:
     void slots_save_button_clicked(void);
@@ -64,19 +65,12 @@ private:
     QAudioOutput * audio;
     QSoundEffect * effect;
 
-    QDateTimeAxis *pcm_axisX;
-    QLineSeries *pcm_series;
-    QChart *pcm_chart;
-    QChart *amplitude_chart;
-    QChart *phase_chart;
-    QDateTime pcm_min;
-    QDateTime pcm_max;
-
-    QDateTimeAxis *pcm_axisX_out;
-    QLineSeries *pcm_series_out;
-    QChart *pcm_chart_out;
-    QDateTime pcm_min_out;
-    QDateTime pcm_max_out;
+    QCustomPlot *in_pcm_polt;
+    QCustomPlot *in_amplitude_polt;
+    QCustomPlot *in_phase_polt;
+    QCustomPlot *out_pcm_polt;
+    QCustomPlot *out_amplitude_polt;
+    QCustomPlot *out_phase_polt;
 
     QLineSeries *amplitude_series;
     QLineSeries *phase_series;
